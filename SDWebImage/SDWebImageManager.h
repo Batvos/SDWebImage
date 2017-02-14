@@ -132,6 +132,18 @@ typedef NSString * _Nullable (^SDWebImageCacheKeyFilterBlock)(NSURL * _Nullable 
  */
 - (nullable UIImage *)imageManager:(nonnull SDWebImageManager *)imageManager transformDownloadedImage:(nullable UIImage *)image withURL:(nullable NSURL *)imageURL;
 
+/**
+ * Allows to transform the image immediately after it has been downloaded and just before to cache it on disk and memory.
+ * NOTE: This method is called from a global queue in order to not to block the main thread.
+ *
+ * @param imageManager The current `SDWebImageManager`
+ * @param imageDate    The image date to transform
+ * @param imageURL     The url of the image to transform
+ *
+ * @return The transformed image data object.
+ */
+- (nullable NSData *)imageManager:(nonnull SDWebImageManager *)imageManager transformDownloadedImageData:(nullable NSData *)imageData withURL:(nullable NSURL *)imageURL;
+
 @end
 
 /**

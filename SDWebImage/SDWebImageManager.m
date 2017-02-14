@@ -204,17 +204,25 @@
 
                     if (options & SDWebImageRefreshCached && cachedImage && !downloadedImage) {
                         // Image refresh hit the NSURLCache cache, do not call the completion block
-                    } else if (downloadedImage && (!downloadedImage.images || (options & SDWebImageTransformAnimatedImage)) && [self.delegate respondsToSelector:@selector(imageManager:transformDownloadedImage:withURL:)]) {
+                    } else if (downloadedImage && (!downloadedImage.images || (options & SDWebImageTransformAnimatedImage)) && ([self.delegate respondsToSelector:@selector(imageManager:transformDownloadedImage:withURL:)] || [self.delegate respondsToSelector:@selector(imageManager:transformDownloadedImageData:withURL:)])) {
                         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                            UIImage *transformedImage = [self.delegate imageManager:self transformDownloadedImage:downloadedImage withURL:url];
-
-                            if (transformedImage && finished) {
-                                BOOL imageWasTransformed = ![transformedImage isEqual:downloadedImage];
-                                // pass nil if the image was transformed, so we can recalculate the data from the image
-                                [self.imageCache storeImage:transformedImage imageData:(imageWasTransformed ? nil : downloadedData) forKey:key toDisk:cacheOnDisk completion:nil];
+                            NSData *transformedData;
+                            UIImage *transformedImage;
+                            
+                            if ([self.delegate respondsToSelector:@selector(imageManager:transformDownloadedImageData:withURL:)]) {
+                                transformedData = [self.delegate imageManager:self transformDownloadedImageData:downloadedData withURL:url];
+                            } else if ([self.delegate respondsToSelector:@selector(imageManager:transformDownloadedImage:withURL:)]) {
+                                transformedImage = [self.delegate imageManager:self transformDownloadedImage:downloadedImage withURL:url];
                             }
                             
-                            [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:transformedImage data:downloadedData error:nil cacheType:SDImageCacheTypeNone finished:finished url:url];
+                            if (transformedData && finished) {
+                                BOOL imageWasTransformed = ![transformedData isEqual:downloadedData];
+                                // pass nil if the image was not transformed, so we can recalculate the data from the downloaded image
+                                [self.imageCache storeImage:downloadedImage imageData:(imageWasTransformed ? transformedData : nil) forKey:key toDisk:cacheOnDisk completion:nil];
+                            }
+                            transformedData = transformedData ? transformedData : downloadedData;
+                            
+                            [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:transformedImage data:transformedData error:nil cacheType:SDImageCacheTypeNone finished:finished url:url];
                         });
                     } else {
                         if (downloadedImage && finished) {
