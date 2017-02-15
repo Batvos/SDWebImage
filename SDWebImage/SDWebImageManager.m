@@ -9,6 +9,7 @@
 #import "SDWebImageManager.h"
 #import <objc/message.h>
 #import "NSImage+WebCache.h"
+#import <ImageIO/ImageIO.h>
 
 @interface SDWebImageCombinedOperation : NSObject <SDWebImageOperation>
 
@@ -221,6 +222,19 @@
                                 [self.imageCache storeImage:downloadedImage imageData:(imageWasTransformed ? transformedData : nil) forKey:key toDisk:cacheOnDisk completion:nil];
                             }
                             transformedData = transformedData ? transformedData : downloadedData;
+                            
+                            if (!transformedImage) {
+                                CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)transformedData,
+                                                                                           (__bridge CFDictionaryRef)@{(NSString *)kCGImageSourceShouldCache: @NO});
+                                CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, index, NULL);
+                                
+                                if (!imageRef) {
+                                    transformedImage = [UIImage imageWithCGImage:imageRef];;
+                                }
+                                CFRelease(imageRef);
+                                CFRetain(imageSource);
+                            }
+
                             
                             [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:transformedImage data:transformedData error:nil cacheType:SDImageCacheTypeNone finished:finished url:url];
                         });
