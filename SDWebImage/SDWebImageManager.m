@@ -226,16 +226,14 @@
                             if (!transformedImage) {
                                 CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)transformedData,
                                                                                            (__bridge CFDictionaryRef)@{(NSString *)kCGImageSourceShouldCache: @NO});
-                                CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, index, NULL);
+                                CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
                                 
                                 if (!imageRef) {
-                                    transformedImage = [UIImage imageWithCGImage:imageRef];;
+                                    transformedImage = [UIImage imageWithCGImage:imageRef];
+                                    CFRelease(imageRef);
                                 }
-                                CFRelease(imageRef);
-                                CFRetain(imageSource);
+                                CFRelease(imageSource);
                             }
-
-                            
                             [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:transformedImage data:transformedData error:nil cacheType:SDImageCacheTypeNone finished:finished url:url];
                         });
                     } else {
