@@ -216,24 +216,28 @@
                                 transformedImage = [self.delegate imageManager:self transformDownloadedImage:downloadedImage withURL:url];
                             }
                             
-                            if (transformedData && finished) {
-                                BOOL imageWasTransformed = ![transformedData isEqual:downloadedData];
-                                // pass nil if the image was not transformed, so we can recalculate the data from the downloaded image
-                                [self.imageCache storeImage:downloadedImage imageData:(imageWasTransformed ? transformedData : nil) forKey:key toDisk:cacheOnDisk completion:nil];
-                            }
-                            transformedData = transformedData ? transformedData : downloadedData;
-                            
                             if (!transformedImage) {
                                 CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)transformedData,
                                                                                            (__bridge CFDictionaryRef)@{(NSString *)kCGImageSourceShouldCache: @NO});
-                                CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+                                NSDictionary *imageProperties = (__bridge_transfer NSDictionary *)CGImageSourceCopyProperties(imageSource, NULL);
+                                CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0,  (__bridge CFDictionaryRef)imageProperties);
                                 
-                                if (!imageRef) {
+                                if (imageRef) {
                                     transformedImage = [UIImage imageWithCGImage:imageRef];
                                     CFRelease(imageRef);
+                                } else {
+                                    transformedImage = downloadedImage;
                                 }
                                 CFRelease(imageSource);
                             }
+                            
+                            if ((transformedData || transformedImage) && finished) {
+                                BOOL imageDataWasTransformed = ![transformedData isEqual:downloadedData];
+                                // pass nil if the image was not transformed, so we can recalculate the data from the downloaded image
+                                [self.imageCache storeImage:transformedImage imageData:(imageDataWasTransformed ? transformedData : nil) forKey:key toDisk:cacheOnDisk completion:nil];
+                            }
+                            transformedData = transformedData ? transformedData : downloadedData;
+                            
                             [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:transformedImage data:transformedData error:nil cacheType:SDImageCacheTypeNone finished:finished url:url];
                         });
                     } else {
