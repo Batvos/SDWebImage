@@ -9,6 +9,7 @@
 #import "SDWebImageManager.h"
 #import <objc/message.h>
 #import "NSImage+WebCache.h"
+#import "NSData+ImageContentType.h"
 #import <ImageIO/ImageIO.h>
 
 @interface SDWebImageCombinedOperation : NSObject <SDWebImageOperation>
@@ -224,6 +225,11 @@
                                 
                                 if (imageRef) {
                                     transformedImage = [UIImage imageWithCGImage:imageRef];
+                                    SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:transformedData];
+
+                                    if (imageFormat == SDImageFormatGIF) {
+                                        transformedImage = [UIImage animatedImageWithImages:@[transformedImage] duration:0.0f];
+                                    }
                                     CFRelease(imageRef);
                                 } else {
                                     transformedImage = downloadedImage;
