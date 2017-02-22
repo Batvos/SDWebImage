@@ -210,6 +210,7 @@
                         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                             NSData *transformedData;
                             UIImage *transformedImage;
+                            SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:downloadedData];
                             
                             if ([self.delegate respondsToSelector:@selector(imageManager:transformDownloadedImageData:withURL:)]) {
                                 transformedData = [self.delegate imageManager:self transformDownloadedImageData:downloadedData withURL:url];
@@ -225,7 +226,6 @@
                                 
                                 if (imageRef) {
                                     transformedImage = [UIImage imageWithCGImage:imageRef];
-                                    SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:transformedData];
 
                                     if (imageFormat == SDImageFormatGIF) {
                                         transformedImage = [UIImage animatedImageWithImages:@[transformedImage] duration:0.0f];
@@ -238,9 +238,9 @@
                             }
                             
                             if ((transformedData || transformedImage) && finished) {
-                                BOOL imageDataWasTransformed = ![transformedData isEqual:downloadedData];
+                                BOOL shouldSaveDataOnDisk = ![transformedData isEqual:downloadedData] || imageFormat == SDImageFormatGIF;
                                 // pass nil if the image was not transformed, so we can recalculate the data from the downloaded image
-                                [self.imageCache storeImage:transformedImage imageData:(imageDataWasTransformed ? transformedData : nil) forKey:key toDisk:cacheOnDisk completion:nil];
+                                [self.imageCache storeImage:transformedImage imageData:(shouldSaveDataOnDisk ? transformedData : nil) forKey:key toDisk:cacheOnDisk completion:nil];
                             }
                             transformedData = transformedData ? transformedData : downloadedData;
                             
